@@ -14,6 +14,7 @@ export default function Home() {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
 
   const fetchPosts = async () => {
     const res = await fetch("/api/posts");
@@ -69,6 +70,12 @@ export default function Home() {
     setContent("");
   };
 
+  const handleSearch = async () => {
+    const res = await fetch(`/api/posts?search=${encodeURIComponent(search)}`);
+    const data = await res.json();
+    setPosts(data);
+  };
+
   return (
     <main className="max-w-2xl mx-auto py-8 px-4">
       <h1 className="text-4xl font-extrabold mb-8 text-center text-blue-700 drop-shadow">
@@ -122,6 +129,24 @@ export default function Home() {
           )}
         </div>
       </form>
+      <div className="mb-6 flex">
+        <input
+          type="text"
+          placeholder="搜索文章"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSearch();
+          }}
+          className="border px-2 py-1 rounded flex-1"
+        />
+        <button
+          onClick={() => handleSearch()}
+          className="ml-2 px-3 py-1 bg-blue-500 text-white rounded"
+        >
+          搜索
+        </button>
+      </div>
       <ul className="space-y-6">
         {posts.map((post) => (
           <li
@@ -145,7 +170,9 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            <p className="mt-3 text-gray-700 whitespace-pre-line">{post.content}</p>
+            <p className="mt-3 text-gray-700 whitespace-pre-line">
+              {post.content}
+            </p>
             <div className="text-gray-400 text-xs mt-4 text-right">
               {new Date(post.createdAt).toLocaleString()}
             </div>
