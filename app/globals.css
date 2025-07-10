@@ -33,3 +33,8 @@ textarea::placeholder {
   color: #888; /* 更深的灰色 */
   opacity: 1; /* 不要透明 */
 }
+
+input,
+textarea {
+  color: #fff; /* 深色背景用白色，浅色背景用深灰色 */
+}
