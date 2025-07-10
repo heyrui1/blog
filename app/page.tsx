@@ -79,7 +79,7 @@ export default function Home() {
   return (
     <main className="max-w-2xl mx-auto py-8 px-4">
       <h1 className="text-4xl font-extrabold mb-8 text-center text-blue-700 drop-shadow">
-        我的博客
+        rui的博客
       </h1>
       <form
         onSubmit={handleSubmit}
@@ -180,7 +180,7 @@ export default function Home() {
         ))}
       </ul>
       <footer className="mt-12 text-center text-gray-400 text-sm">
-        © {new Date().getFullYear()} 我的博客 | Powered by Next.js & Prisma
+        © {new Date().getFullYear()} rui的博客 | Powered by Next.js & Prisma
       </footer>
     </main>
   );
