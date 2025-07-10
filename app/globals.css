@@ -38,3 +38,17 @@ input,
 textarea {
   color: #000; /* 或 #333、#000，都是深色，推荐 */
 }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 1s ease;
+}
