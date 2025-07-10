@@ -36,5 +36,5 @@ textarea::placeholder {
 
 input,
 textarea {
-  color: #fff; /* 深色背景用白色，浅色背景用深灰色 */
+  color: #fff; /* 或 #222、#000，根据你页面背景色选择 */
 }
