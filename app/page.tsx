@@ -13,12 +13,14 @@ function formatTime(dateStr: string) {
   return date.toLocaleString();
 }
 
+// 文章类型
 type Post = {
   id: number;
   title: string;
   content: string;
   createdAt: string;
 };
+
 
 type User = {
   id: number;
