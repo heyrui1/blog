@@ -20,6 +20,12 @@ type Post = {
   createdAt: string;
 };
 
+type User = {
+  id: number;
+  username: string;
+  role: "ADMIN" | "VISITOR";
+} | null;
+
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [title, setTitle] = useState("");
@@ -29,6 +35,14 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [searching, setSearching] = useState(false);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [user, setUser] = useState<User>(null);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [registerUsername, setRegisterUsername] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [authError, setAuthError] = useState("");
 
   const fetchPosts = async (searchVal = "") => {
     setSearching(true);
@@ -40,7 +54,15 @@ export default function Home() {
     setSearching(false);
   };
 
+  // 获取当前用户
+  const fetchUser = async () => {
+    const res = await fetch("/api/auth");
+    const data = await res.json();
+    setUser(data.user);
+  };
+
   useEffect(() => {
+    fetchUser();
     fetchPosts();
   }, []);
 
@@ -92,6 +114,63 @@ export default function Home() {
     fetchPosts(search);
   };
 
+  // 登录
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: loginUsername,
+        password: loginPassword,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setShowLogin(false);
+      setLoginUsername("");
+      setLoginPassword("");
+      fetchUser();
+    } else {
+      setAuthError(data.error || "登录失败");
+    }
+  };
+
+  // 注册
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: registerUsername,
+        password: registerPassword,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setShowRegister(false);
+      setRegisterUsername("");
+      setRegisterPassword("");
+      setShowLogin(true);
+      setAuthError("注册成功，请登录");
+    } else {
+      setAuthError(data.error || "注册失败");
+    }
+  };
+
+  // 登出
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+    setShowLogin(false);
+    setShowRegister(false);
+    setAuthError("");
+    fetchPosts();
+  };
+
   // 动画类
   // 在 app/globals.css 里加：
   // @keyframes fade-in { from { opacity: 0; transform: translateY(-20px);} to { opacity: 1; transform: translateY(0);} }
@@ -102,54 +181,185 @@ export default function Home() {
       <h1 className="text-4xl sm:text-5xl font-extrabold mb-8 text-center bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-fade-in select-none">
         rui的博客
       </h1>
-      <form
-        onSubmit={handleSubmit}
-        className="mb-8 bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4"
-      >
-        <input
-          className="border border-gray-300 px-3 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base"
-          placeholder="标题"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-        <textarea
-          className="border border-gray-300 px-3 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base"
-          placeholder="内容"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          required
-          rows={4}
-        />
-        <div className="flex space-x-2">
-          <button
-            className={`px-6 py-2 rounded-lg text-white font-semibold transition text-base shadow ${
-              loading
-                ? "bg-blue-300"
-                : "bg-gradient-to-r from-blue-500 to-purple-500 hover:scale-105 active:scale-95"
-            }`}
-            type="submit"
-            disabled={loading}
-          >
-            {loading
-              ? editId === null
-                ? "发布中..."
-                : "保存中..."
-              : editId === null
-              ? "发布"
-              : "保存"}
-          </button>
-          {editId !== null && (
+      {/* 用户栏 */}
+      <div className="flex justify-end mb-4 gap-2">
+        {user ? (
+          <>
+            <span className="text-gray-600">
+              你好，{user.username}（{user.role === "ADMIN" ? "管理员" : "访客"}
+              ）
+            </span>
             <button
-              className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold transition text-base shadow"
-              type="button"
-              onClick={handleCancelEdit}
+              className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm"
+              onClick={handleLogout}
             >
-              取消
+              退出登录
             </button>
-          )}
+          </>
+        ) : (
+          <>
+            <button
+              className="px-3 py-1 rounded bg-blue-500 text-white text-sm hover:bg-blue-600"
+              onClick={() => {
+                setShowLogin(true);
+                setAuthError("");
+              }}
+            >
+              登录
+            </button>
+            <button
+              className="px-3 py-1 rounded bg-purple-500 text-white text-sm hover:bg-purple-600"
+              onClick={() => {
+                setShowRegister(true);
+                setAuthError("");
+              }}
+            >
+              注册
+            </button>
+          </>
+        )}
+      </div>
+      {/* 登录弹窗 */}
+      {showLogin && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <form
+            onSubmit={handleLogin}
+            className="bg-white rounded-xl shadow-lg p-8 w-80 space-y-4 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold mb-2">登录</h2>
+            <input
+              className="border px-3 py-2 w-full rounded-lg"
+              placeholder="用户名"
+              value={loginUsername}
+              onChange={(e) => setLoginUsername(e.target.value)}
+              required
+            />
+            <input
+              className="border px-3 py-2 w-full rounded-lg"
+              placeholder="密码"
+              type="password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              required
+            />
+            {authError && (
+              <div className="text-red-500 text-sm">{authError}</div>
+            )}
+            <div className="flex gap-2">
+              <button
+                className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
+                type="submit"
+              >
+                登录
+              </button>
+              <button
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                type="button"
+                onClick={() => setShowLogin(false)}
+              >
+                取消
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      )}
+      {/* 注册弹窗 */}
+      {showRegister && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <form
+            onSubmit={handleRegister}
+            className="bg-white rounded-xl shadow-lg p-8 w-80 space-y-4 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold mb-2">注册</h2>
+            <input
+              className="border px-3 py-2 w-full rounded-lg"
+              placeholder="用户名"
+              value={registerUsername}
+              onChange={(e) => setRegisterUsername(e.target.value)}
+              required
+            />
+            <input
+              className="border px-3 py-2 w-full rounded-lg"
+              placeholder="密码（至少6位）"
+              type="password"
+              value={registerPassword}
+              onChange={(e) => setRegisterPassword(e.target.value)}
+              required
+            />
+            {authError && (
+              <div className="text-red-500 text-sm">{authError}</div>
+            )}
+            <div className="flex gap-2">
+              <button
+                className="flex-1 bg-purple-500 text-white py-2 rounded-lg hover:bg-purple-600"
+                type="submit"
+              >
+                注册
+              </button>
+              <button
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300"
+                type="button"
+                onClick={() => setShowRegister(false)}
+              >
+                取消
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {/* 发布表单，仅admin可见 */}
+      {user && user.role === "ADMIN" && (
+        <form
+          onSubmit={handleSubmit}
+          className="mb-8 bg-white rounded-2xl shadow p-4 sm:p-6 space-y-4"
+        >
+          <input
+            className="border border-gray-300 px-3 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base"
+            placeholder="标题"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+          <textarea
+            className="border border-gray-300 px-3 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base"
+            placeholder="内容"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            required
+            rows={4}
+          />
+          <div className="flex space-x-2">
+            <button
+              className={`px-6 py-2 rounded-lg text-white font-semibold transition text-base shadow ${
+                loading
+                  ? "bg-blue-300"
+                  : "bg-gradient-to-r from-blue-500 to-purple-500 hover:scale-105 active:scale-95"
+              }`}
+              type="submit"
+              disabled={loading}
+            >
+              {loading
+                ? editId === null
+                  ? "发布中..."
+                  : "保存中..."
+                : editId === null
+                ? "发布"
+                : "保存"}
+            </button>
+            {editId !== null && (
+              <button
+                className="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold transition text-base shadow"
+                type="button"
+                onClick={handleCancelEdit}
+              >
+                取消
+              </button>
+            )}
+          </div>
+        </form>
+      )}
       {/* 搜索框 */}
       <div className="mb-6 flex items-center gap-2">
         <span className="text-gray-400">
@@ -202,26 +412,29 @@ export default function Home() {
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-all">
                 {post.title}
               </h2>
-              <div className="space-x-2 flex-shrink-0">
-                <button
-                  className="text-blue-600 hover:underline text-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEdit(post);
-                  }}
-                >
-                  编辑
-                </button>
-                <button
-                  className="text-red-500 hover:underline text-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(post.id);
-                  }}
-                >
-                  删除
-                </button>
-              </div>
+              {/* 仅admin显示编辑/删除按钮 */}
+              {user && user.role === "ADMIN" && (
+                <div className="space-x-2 flex-shrink-0">
+                  <button
+                    className="text-blue-600 hover:underline text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(post);
+                    }}
+                  >
+                    编辑
+                  </button>
+                  <button
+                    className="text-red-500 hover:underline text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(post.id);
+                    }}
+                  >
+                    删除
+                  </button>
+                </div>
+              )}
             </div>
             <p className="mt-2 text-gray-700 whitespace-pre-line break-words text-base min-h-[24px]">
               {expanded === post.id
