@@ -4,6 +4,6 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "env": {
-    "JWT_SECRET": "@jwt_secret"
+    "JWT_SECRET": "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#$%^&*()_+"
   }
 }
