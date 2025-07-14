@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { username },
     });
 
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ user: null });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
       select: {
         id: true,
