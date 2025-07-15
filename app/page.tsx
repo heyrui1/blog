@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import dynamic from "next/dynamic";
+import ReactMarkdown from "react-markdown";
 
 // 时间友好显示
 function formatTime(dateStr: string) {
@@ -20,7 +22,6 @@ type Post = {
   content: string;
   createdAt: string;
 };
-
 
 type User = {
   id: number;
@@ -45,6 +46,7 @@ export default function Home() {
   const [registerUsername, setRegisterUsername] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchPosts = async (searchVal = "") => {
     setSearching(true);
@@ -116,6 +118,23 @@ export default function Home() {
     fetchPosts(search);
   };
 
+  // 插入图片到 Markdown 内容
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    // 插入 Markdown 图片语法到内容
+    setContent((prev) => prev + `\n![](${data.url})\n`);
+    // 清空 input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   // 登录
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,6 +196,11 @@ export default function Home() {
   // 在 app/globals.css 里加：
   // @keyframes fade-in { from { opacity: 0; transform: translateY(-20px);} to { opacity: 1; transform: translateY(0);} }
   // .animate-fade-in { animation: fade-in 1s ease; }
+
+  // 动态导入 Markdown 编辑器，避免 SSR 报错
+  const MDEditor = dynamic(() => import("@uiw/react-md-editor"), {
+    ssr: false,
+  });
 
   return (
     <main className="max-w-2xl mx-auto py-6 px-2 sm:px-4 animate-fade-in">
@@ -324,14 +348,30 @@ export default function Home() {
             onChange={(e) => setTitle(e.target.value)}
             required
           />
-          <textarea
-            className="border border-gray-300 px-3 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-base"
-            placeholder="内容"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={4}
-          />
+          {/* Markdown 编辑器替换 textarea，集成图片上传按钮 */}
+          <div data-color-mode="light">
+            <div className="flex mb-2">
+              <button
+                type="button"
+                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm mr-2"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                插入图片
+              </button>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleImageUpload}
+              />
+            </div>
+            <MDEditor
+              value={content}
+              onChange={(v) => setContent(v || "")}
+              height={300}
+            />
+          </div>
           <div className="flex space-x-2">
             <button
               className={`px-6 py-2 rounded-lg text-white font-semibold transition text-base shadow ${
@@ -438,13 +478,18 @@ export default function Home() {
                 </div>
               )}
             </div>
-            <p className="mt-2 text-gray-700 whitespace-pre-line break-words text-base min-h-[24px]">
-              {expanded === post.id
-                ? post.content
-                : post.content.length > 100
-                ? post.content.slice(0, 100) + "... (点击展开)"
-                : post.content}
-            </p>
+            {/* Markdown 渲染文章内容 */}
+            <div className="mt-2 text-gray-700 break-words text-base min-h-[24px] prose max-w-none">
+              {expanded === post.id ? (
+                <ReactMarkdown>{post.content}</ReactMarkdown>
+              ) : post.content.length > 100 ? (
+                <ReactMarkdown>
+                  {post.content.slice(0, 100) + "... (点击展开)"}
+                </ReactMarkdown>
+              ) : (
+                <ReactMarkdown>{post.content}</ReactMarkdown>
+              )}
+            </div>
             <div className="text-gray-400 text-xs mt-4 text-right">
               {formatTime(post.createdAt)}
             </div>
